@@ -28,10 +28,19 @@ npm install
 
 ### 3. Ejecutar la API:
 
+Estará disponible en http://localhost:3000.
+
 ```javascript
-npm run 
-La API estará disponible en http://localhost:3000.
+npm run server
 ```
+
+### 4. Revisar los Tests:
+
+Por último si se desean revisar los tests efectuados para la comprobación de las funciones implementadas en user-management
+```javascript
+npm run tests
+```
+
 
 ## Endpoints
 

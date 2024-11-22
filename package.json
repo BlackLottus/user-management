@@ -4,7 +4,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "mocha --loader ts-node/esm --require tsconfig-paths/register --recursive test/**/*.ts"
+    "tests": "mocha test/testUsers.js",
+    "server": "node dist/server.js"
   },
   "keywords": [],
   "author": "",
