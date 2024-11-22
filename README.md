@@ -9,6 +9,12 @@ Bienvenido a la **User Management API**, una API RESTful para gestionar usuarios
 - **Inicio de sesión**: Proporciona un token JWT para autenticarse en la API y acceder a recursos protegidos.
 - **Protección de rutas**: Utiliza JWT para proteger rutas y asegurar que solo los usuarios autenticados puedan acceder a datos sensibles.
 
+## Módulo NPM
+**User Management** esta disponible como paquete **NPM**
+Si quieres usarlo en tu proyecto sin necesidad de clonar el código simplemente haz uso de los comandos de npm para ello.
+```json
+npm install user-management-package
+```
 
 ## Autenticación
 La API utiliza JWT (JSON Web Tokens) para autenticar a los usuarios y proteger rutas sensibles. Para obtener un token, simplemente inicia sesión con tu email y contraseña. Luego, usa el token en los headers de tus solicitudes a los endpoints protegidos.
