@@ -12,7 +12,7 @@ Bienvenido a la **User Management API**, una API RESTful para gestionar usuarios
 ## Módulo NPM
 **User Management** esta disponible como paquete **NPM**
 Si quieres usarlo en tu proyecto sin necesidad de clonar el código simplemente haz uso de los comandos de npm para ello.
-```json
+```text
 npm install user-management-package
 ```
 
