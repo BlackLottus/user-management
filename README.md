@@ -74,7 +74,7 @@ Este endpoint permite registrar un nuevo usuario en el sistema. Los parámetros 
   "dni": "12345678A",
   "nick": "Alex",
   "password": "password",
-  "rol": "usuario",
+  "rol": "usuario"
 }
 ```
 
@@ -159,7 +159,7 @@ Los siguientes parámetros se pueden actualizar:
   "dni": "12345678A",
   "nick": "Alex",
   "password": "password",
-  "rol": "usuario",
+  "rol": "usuario"
 }
 ```
 
