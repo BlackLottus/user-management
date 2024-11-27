@@ -7,6 +7,7 @@ import {
   listUsers,
   updateUser,
   deleteUser,
+  getUserId
 } from './controllers/userController.js'; 
 
 const app = express();
@@ -40,54 +41,65 @@ app.post('/api/users/login', async (req, res) => {
 });
 
 app.get('/api/users', async (req: Request, res: Response) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    res.status(401).json({ error: 'Token requerido' });
-    return;
-  }
 
   try {
-    const users = await listUsers(token);
+    const users = await listUsers();
     if (users) {
       res.json(users);
-    } else {
-      res.status(401).json({ error: 'Token inválido' });
     }
   } catch (error) {
     res.status(500).json({ error: 'Error al listar usuarios' });
   }
 });
 
-
-
-app.put('/api/users', async (req: Request, res: Response) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    res.status(401).json({ error: 'Token requerido' });
-    return;
-  }
-
-  try {
-    await updateUser(req.body.user, req.body.newUser);
-    res.json({ message: 'Usuario actualizado con éxito' });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar usuario' });
-  }
+  // Endpoint para actualizar reservas
+  app.put('/api/users/:id', async (req: Request, res: Response) => {
+    const userId = parseInt(req.params.id); // Obtener el ID de la reserva desde la URL
+    const newUser = req.body; // Obtener los nuevos datos de la reserva desde el cuerpo de la petición
+    
+    try {
+    // Comprobar si la reserva existe antes de actualizarla
+    const existingUser = await getUserId(userId);
+        
+    if (!existingUser) {
+        res.status(404).json({ error: 'Usuario no encontrado' });
+        return 
+    }
+    
+    // Llamar a la función updateReserva para realizar la actualización
+    await updateUser(existingUser, newUser);
+    
+    const newU = await getUserId(userId);
+    // Responder con un mensaje de éxito
+    res.status(200).json({ newU });
+    } catch (error) {
+    console.error('Error al actualizar el usuario:', error);
+    res.status(500).json({ error: 'Error al actualizar el usuario' });
+    }
 });
 
-app.delete('/api/users', async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    res.status(401).json({ error: 'Token requerido' });
-    return 
-  }
-
-  try {
-    await deleteUser(req.body.user);
-    res.json({ message: 'Usuario eliminado con éxito' });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al eliminar usuario' });
-  }
+// EndPoint para eliminar reservas
+app.delete('/api/users/:id', async (req: Request, res: Response) => {
+    const userId = parseInt(req.params.id); // Obtener el ID de la reserva desde la URL
+  
+    try {
+      // Comprobar si la reserva existe antes de eliminarla
+      const existingUser = await getUserId(userId);
+  
+      if (!existingUser) {
+        res.status(404).json({ error: 'User no encontrado' });
+        return 
+      }
+  
+      // Llamar a la función deleteReserva para eliminar la reserva
+      const userRemoved = await deleteUser(existingUser);
+  
+      // Responder con un mensaje de éxito
+      res.status(200).json({ UserID: userId , text: "Usuario Eliminado correctamente."});
+    } catch (error) {
+      console.error('Error al eliminar el usuario:', error);
+      res.status(500).json({ error: 'Error al eliminar el usuario' });
+    }
 });
 
 // Iniciar el servidor

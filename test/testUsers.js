@@ -1,15 +1,12 @@
 import { expect } from 'chai';
 import { createUser, login, listUsers, updateUser, deleteUser } from '../dist/index.js';
 import { connectDB } from '../dist/database/db.js'; 
-import jwt from 'jsonwebtoken';
 import sinon from 'sinon';
 import chalk from 'chalk';
 
 describe(chalk.green('Test de Funciones de Usuario'), () => {
 
   let testUser;
-  let token;
-  let secret_key = '6dda1e4cd219462335597978f7c6f57a83d12f4bf0c99ad4071dcce89ed4558dffb0478f197526a6401bad67fb350219a787ce170d4ac510db4798f5e509774e';
   let logStub;
   let errorStub;
 
@@ -38,9 +35,7 @@ describe(chalk.green('Test de Funciones de Usuario'), () => {
     }
 
     testUser.id = createdUser.id; // Asignamos el ID del usuario creado
-    token = jwt.sign({ id: testUser.id, email: testUser.email }, secret_key, { expiresIn: '1h' });
-    testUser.token = token; // Asignamos el token generado al usuario para futuras pruebas
-
+    
     console.log(chalk.blue('Usuario creado para pruebas.'));
   });
 
@@ -73,7 +68,7 @@ describe(chalk.green('Test de Funciones de Usuario'), () => {
 
   describe(chalk.yellow('Prueba de listado de usuarios'), () => {
     it('Debe listar todos los usuarios correctamente', async () => {
-      const users = await listUsers(testUser.token);  // Pasamos el token aquí
+      const users = await listUsers(); 
       expect(users).to.be.an('array');
       expect(users).to.have.lengthOf.above(0);
       console.log(chalk.green('Listado de usuarios exitoso.'));
@@ -94,7 +89,7 @@ describe(chalk.green('Test de Funciones de Usuario'), () => {
       };
 
       // Actualizamos los datos
-      await updateUser(testUser, updatedData);  // Pasamos el token aquí también
+      await updateUser(testUser, updatedData);
 
       // Verificamos que la actualización se haya realizado
       const updatedUser = await login(updatedData.email, updatedData.password);  // Verifica con el nuevo email y password
@@ -106,7 +101,7 @@ describe(chalk.green('Test de Funciones de Usuario'), () => {
 
   describe(chalk.yellow('Prueba de eliminación de usuario'), () => {
     it('Debe eliminar el usuario correctamente', async () => {
-      await deleteUser(testUser);  // Pasamos el token aquí también
+      await deleteUser(testUser); 
 
       // Intentamos obtener el usuario eliminado
       const deletedUser = await login(testUser.email, testUser.password);  // El usuario no debe poder loguearse

@@ -45,7 +45,7 @@ export const createUser = async (user: User): Promise<void> => {
 
 
 /**
- * Loguearse en la aplicación / Acceder para obtener un token.
+ * Loguearse en la aplicación.
  * @param email El email del usuario para autenticar la solicitud.
  * @param passsword La contraseña del usuario para autenticar la solicitud.
  * @returns Devuelve al usuario User si es correcto; de lo contrario, null.
@@ -64,26 +64,15 @@ export const login = async (email: string, password: string): Promise<User | nul
         return null; // Contraseña incorrecta
     }
 
-    // Genera el token usando el ID y el email del usuario
-    user.token = generateToken({ id: user.id, email: user.email });
-
-    return user; // Devuelve el token y los datos del usuario
+    return user; // Devuelve ños datos del usuario
 };
 
 /**
- * Obtiene todos los usuarios si el token es válido.
- * @param token El token JWT para autenticar la solicitud.
- * @returns Un arreglo de usuarios si el token es válido; de lo contrario, Error.
+ * Obtiene todos los usuarios.
+ * @returns Un arreglo de usuarios; de lo contrario, Error.
  */
-export const listUsers = async (token: string): Promise<User[] | void> => {
+export const listUsers = async (): Promise<User[] | void> => {
     const db = await connectDB();
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-        console.log("LOG_Error: Token inválido");
-        return;
-    }
-    
     return await db.all<User[]>(CONSULTAS.SELECT_ALL);
 };
 
@@ -95,11 +84,65 @@ export const listUsers = async (token: string): Promise<User[] | void> => {
  */
 export const updateUser = async (user: User, newUser: Partial<User>): Promise<void> => {
     const db = await connectDB();
-
-    const decoded = verifyToken(user.token);
-    if (!decoded) {
-        console.log('LOG_Error: Token inválido');
+  
+    try {
+      // Verificar si alguno de los datos únicos ya existe en la base de datos (email, dni, nick)
+      if (newUser.email || newUser.dni || newUser.nick) {
+        const existingUser = await db.get(
+          `SELECT * FROM users WHERE (email = ? OR dni = ? OR nick = ?) AND id != ?`,
+          [newUser.email, newUser.dni, newUser.nick, user.id]
+        );
+  
+        if (existingUser) {
+          throw new Error('Email, DNI o Nick ya están en uso por otro usuario.');
+        }
+      }
+  
+      // Si se proporciona una contraseña nueva, generar un hash
+      let hashedPassword = user.password; // Usar la contraseña actual si no se actualiza
+      if (newUser.password) {
+        hashedPassword = await bcrypt.hash(newUser.password, 10);
+      }
+  
+      // Construir la consulta dinámicamente solo con los campos proporcionados
+      const updates = [];
+      const values = [];
+  
+      for (const [key, value] of Object.entries(newUser)) {
+        if (value !== undefined) {
+          updates.push(`${key} = ?`);
+          values.push(value);
+        }
+      }
+  
+      if (updates.length === 0) {
+        throw new Error('No se proporcionaron datos para actualizar.');
+      }
+  
+      // Asegurar que la contraseña siempre se incluya en la actualización
+      updates.push(`password = ?`);
+      values.push(hashedPassword);
+  
+      // Agregar el ID del usuario al final de los valores
+      values.push(user.id);
+  
+      // Ejecutar la actualización
+      const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+      await db.run(query, values);
+    } catch (error) {
+      console.error('Error al actualizar el usuario:', error);
+      throw error;
+    } finally {
+      await db.close();
     }
+  };
+  
+
+/*export const updateUser = async (user: User, newUser: Partial<User>): Promise<void> => {
+    const db = await connectDB();
+
+    // Revisar si los datos del nuevo usuario existen ya en la base de datos...
+    // Solo actualizar los datos que nos pasan por newUser...
 
     if(newUser.password){
         const hashedPassword = await bcrypt.hash(newUser.password, 10);
@@ -107,53 +150,42 @@ export const updateUser = async (user: User, newUser: Partial<User>): Promise<vo
             newUser.nick, hashedPassword, newUser.rol, newUser.fecha_creacion, user.id]);
     }else await db.run(CONSULTAS.UPDATE,[newUser.nombre, newUser.apellido, newUser.email, newUser.dni, 
         newUser.nick, newUser.password, newUser.rol, newUser.fecha_creacion, user.id]);
-};
+};*/
 
 /**
  * Elimina al usuario actual de la base de datos y de la aplicación.
  * @param User El usuario atenticado en la aplicación y el cual quiere eliminar sus datos.
  */
 export const deleteUser = async (user: User): Promise<void> => {
-
-    const decoded = verifyToken(user.token); // Validamos el token pasado como parámetro
-    if (!decoded) {
-        console.log('LOG_Error: Token inválido');
-        return;
-    }
     const db = await connectDB();
     await db.run(CONSULTAS.DELETE, [user.id]);
 };
 
+// Función para obtener una reserva por su ID
+export const getUserId = async (id: number): Promise<User | null> => {
+    const db = await connectDB();
 
+    // Validación del ID
+    if (!id || id <= 0) {
+        console.log('ID del usuario inválido');
+        return null;
+    }
 
-// TOKEN
-import jwt, { JwtPayload } from 'jsonwebtoken';
-var secret_key = '6dda1e4cd219462335597978f7c6f57a83d12f4bf0c99ad4071dcce89ed4558dffb0478f197526a6401bad67fb350219a787ce170d4ac510db4798f5e509774e';
-type TokenPayload = {
-    id: number;
-    email: string;
-};
-
-export const generateToken = (payload: object): string => {
-    const secretKey = process.env.JWT_SECRET || secret_key;
-    const token = jwt.sign(payload, secretKey, { expiresIn: '1h' }); // Genera un token con expiración de 1 hora
-    return token;
-};
-
-export const verifyToken = (token: string): TokenPayload | null => {
     try {
-        const secretKey = process.env.JWT_SECRET || secret_key;
-        const decoded = jwt.verify(token, secretKey);
+        // Consulta SQL para obtener la reserva por ID
+        const user = await db.get<User>(CONSULTAS.SELECT_BY_ID, [id]);
 
-        if (typeof decoded === 'object' && 'id' in decoded && 'email' in decoded) {
-            return decoded as TokenPayload;
+        // Si no se encuentra la reserva, devolver null
+        if (!user) {
+            console.log(`User con ID ${id} no encontrado.`);
+            return null;
         }
 
-        console.log('LOG_Error: El token decodificado no tiene el formato esperado');
-        return null;
+        return user;
     } catch (err) {
-        console.log('LOG_Error: Token inválido:', err);
+        console.error('Error al obtener el usuario:', err);
         return null;
     }
 };
+
 

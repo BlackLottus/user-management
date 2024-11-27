@@ -1,13 +1,11 @@
 # User Management API
 
-Bienvenido a la **User Management API**, una API RESTful para gestionar usuarios, con capacidades de registro, inicio de sesión y acceso a datos protegidos. Esta API permite registrar usuarios, autenticar sus credenciales mediante JWT y realizar operaciones de gestión de usuarios.
+Bienvenido a la **User Management API**, una API RESTful para gestionar usuarios, con capacidades de registro, inicio de sesión y acceso a datos protegidos. Esta API permite registrar usuarios y realizar operaciones de gestión de usuarios.
 
 ## Características
 
 - **Gestión de usuarios**: Permite consultar los datos de los usuarios, actualizarlos y eliminarlos.
 - **Registro de usuarios**: Permite registrar nuevos usuarios con su nombre, apellido, email y contraseña.
-- **Inicio de sesión**: Proporciona un token JWT para autenticarse en la API y acceder a recursos protegidos.
-- **Protección de rutas**: Utiliza JWT para proteger rutas y asegurar que solo los usuarios autenticados puedan acceder a datos sensibles.
 
 ## Módulo NPM
 **User Management** esta disponible como paquete **NPM**
@@ -15,9 +13,6 @@ Si quieres usarlo en tu proyecto sin necesidad de clonar el código simplemente 
 ```text
 npm install user-management-package
 ```
-
-## Autenticación
-La API utiliza JWT (JSON Web Tokens) para autenticar a los usuarios y proteger rutas sensibles. Para obtener un token, simplemente inicia sesión con tu email y contraseña. Luego, usa el token en los headers de tus solicitudes a los endpoints protegidos.
 
 ## Instrucciones de la API
 
@@ -44,7 +39,7 @@ npm run server
 
 Por último si se desean revisar los tests efectuados para la comprobación de las funciones implementadas en user-management
 ```javascript
-npm run tests
+npm run testUsers
 ```
 
 
@@ -82,7 +77,7 @@ Este endpoint permite registrar un nuevo usuario en el sistema. Los parámetros 
 
 `POST /api/users/login`
 
-Este endpoint permite a los usuarios autenticarse con su email y contraseña. Necesitarás Iniciar sesión para obtener un Token y para utilizar los demás métodos de la aplicación.
+Este endpoint permite a los usuarios autenticarse con su email y contraseña.
 
 **Request Body:**
 
@@ -93,7 +88,7 @@ Este endpoint permite a los usuarios autenticarse con su email y contraseña. Ne
 }
 ```
 
-### 3. Obtener todos los usuarios (Protegido)
+### 3. Obtener todos los usuarios
 
 `GET /api/users`
 
@@ -105,33 +100,11 @@ Este endpoint devuelve una lista de todos los usuarios registrados en el sistema
 - `apellido` (opcional): Filtra los usuarios por apellido.
 - `email` (opcional): Filtra los usuarios por dirección de correo electrónico.
 
-
-**Headers:**
-
-```text
-Authorization: Bearer <token>
-```
-
-### 4. Obtener un usuario por ID (Protegido)
-
-`GET /api/users/:id`
-
-Este endpoint permite obtener la información de un usuario específico mediante su ID. Requiere autenticación con un token.
-
-**Parámetros:**
-- `id`: El ID del usuario que deseas obtener.
-
-**Headers:**
-
-```text
-Authorization: Bearer <token>
-```
-
-### 5. Actualizar un usuario por ID (Protegido)
+### 4. Actualizar un usuario por ID
 
 `PUT /api/users/:id`
 
-Este endpoint permite actualizar la información de un usuario específico mediante su ID. Se requiere autenticación mediante un token.
+Este endpoint permite actualizar la información de un usuario específico mediante su ID.
 
 #### **Parámetros:**
 
@@ -163,18 +136,12 @@ Los siguientes parámetros se pueden actualizar:
 }
 ```
 
-### 6. Eliminar un usuario por ID (Protegido)
+### 5. Eliminar un usuario por ID 
 
 `DELETE /api/users/:id`
 
-Este endpoint permite eliminar un usuario específico mediante su ID. Se requiere un token.
+Este endpoint permite eliminar un usuario específico mediante su ID.
 
 #### **Parámetros:**
 
 - **id** : El ID del usuario que deseas eliminar.
-
-#### **Headers:**
-
-```text
-Authorization: Bearer <token>
-```

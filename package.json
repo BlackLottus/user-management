@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "tests": "mocha test/testUsers.js",
+    "testUsers": "mocha test/testUsers.js",
     "server": "node dist/server.js"
   },
   "keywords": [],
