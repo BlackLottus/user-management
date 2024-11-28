@@ -15,12 +15,14 @@ export const connectDB = async () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nombre TEXT NOT NULL,
       apellido TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      dni TEXT NOT NULL,
-      nick TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      dni TEXT NOT NULL UNIQUE,
+      nick TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL,
       rol TEXT CHECK(rol IN ('admin', 'propietario', 'usuario')) NOT NULL,
-      fecha_creacion TEXT DEFAULT CURRENT_TIMESTAMP
+      fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      activo BOOLEAN NOT NULL DEFAULT 1,
+      image TEXT
     );
   `);
   

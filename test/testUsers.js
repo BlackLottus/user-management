@@ -1,117 +1,151 @@
+import { connectDB } from '../dist/database/db.js';
+import {
+    addUser,
+    login,
+    listUsers,
+    updateUser,
+    deleteUser,
+    getUserId
+} from '../dist/index.js';
 import { expect } from 'chai';
-import { createUser, login, listUsers, updateUser, deleteUser } from '../dist/index.js';
-import { connectDB } from '../dist/database/db.js'; 
 import sinon from 'sinon';
-import chalk from 'chalk';
 
-describe(chalk.green('Test de Funciones de Usuario'), () => {
+describe('Funciones de Usuarios', () => {
+    let db;
+    let logStub;
+    let errorStub;
 
-  let testUser;
-  let logStub;
-  let errorStub;
-
-  before(async () => {
-    // Crear un usuario para pruebas
-    testUser = {
-      nombre: 'Juan',
-      apellido: 'Pérez',
-      email: 'juan.perez@example.com',
-      dni: '12345678',
-      nick: 'juanito',
-      password: 'password123',
-      rol: 'usuario',
-      fecha_creacion: new Date().toISOString()
-    };
-
-    // Creamos el usuario en la base de datos
-    await createUser(testUser);
-
-    // Verifica que el usuario se haya creado correctamente
-    const db = await connectDB();
-    const createdUser = await db.get('SELECT * FROM users WHERE email = ?', [testUser.email]);
-
-    if (!createdUser || !createdUser.id) {
-      throw new Error('No se pudo crear el usuario');
-    }
-
-    testUser.id = createdUser.id; // Asignamos el ID del usuario creado
-    
-    console.log(chalk.blue('Usuario creado para pruebas.'));
-  });
-
-  beforeEach(() => {
-    // Creando stubs para console.log y console.error
-    logStub = sinon.stub(console, 'log');
-    errorStub = sinon.stub(console, 'error');
-  });
-
-  afterEach(() => {
-    // Restaurar los stubs después de cada prueba
-    logStub.restore();
-    errorStub.restore();
-  });
-
-  describe(chalk.yellow('Prueba de login'), () => {
-    it('Debe loguearse correctamente con el email y password', async () => {
-      const loggedUser = await login(testUser.email, testUser.password);
-      expect(loggedUser).to.not.be.null;
-      expect(loggedUser.email).to.equal(testUser.email);
-      console.log(chalk.green('Login exitoso.'));
+    beforeEach(() => {
+        // Silenciar console.log y console.error
+        logStub = sinon.stub(console, 'log');
+        errorStub = sinon.stub(console, 'error');
     });
 
-    it('Debe fallar si la contraseña es incorrecta', async () => {
-      const loggedUser = await login(testUser.email, 'incorrectPassword');
-      expect(loggedUser).to.be.null;
-      console.log(chalk.green('Login fallido - Contraseña incorrecta.'));
+    afterEach(() => {
+        logStub.restore();
+        errorStub.restore();
     });
-  });
 
-  describe(chalk.yellow('Prueba de listado de usuarios'), () => {
-    it('Debe listar todos los usuarios correctamente', async () => {
-      const users = await listUsers(); 
-      expect(users).to.be.an('array');
-      expect(users).to.have.lengthOf.above(0);
-      console.log(chalk.green('Listado de usuarios exitoso.'));
+    // Configuración inicial: Crear tabla de usuarios
+    before(async () => {
+        db = await connectDB();
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                apellido TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                dni TEXT UNIQUE NOT NULL,
+                nick TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                rol TEXT CHECK(rol IN ('admin', 'propietario', 'usuario')) NOT NULL,
+                fecha_creacion TEXT NOT NULL
+            );
+        `);
     });
-  });
 
-  describe(chalk.yellow('Prueba de actualización de usuario'), () => {
-    it('Debe actualizar los datos de usuario correctamente', async () => {
-      const updatedData = {
-        nombre: 'Juan Carlos',
-        apellido: 'Pérez Gómez',
-        email: 'juan.carlos@example.com',
-        dni: '98765432',
-        nick: 'juancarlos',
-        password: 'newpassword123',
-        rol: 'admin',
-        fecha_creacion: new Date().toISOString()
-      };
-
-      // Actualizamos los datos
-      await updateUser(testUser, updatedData);
-
-      // Verificamos que la actualización se haya realizado
-      const updatedUser = await login(updatedData.email, updatedData.password);  // Verifica con el nuevo email y password
-      expect(updatedUser).to.not.be.null;
-      expect(updatedUser.nombre).to.equal(updatedData.nombre);
-      console.log(chalk.green('Usuario actualizado correctamente.'));
+    // Limpieza después de todas las pruebas
+    after(async () => {
+        await db.exec(`DROP TABLE users`);
+        db.close();
     });
-  });
 
-  describe(chalk.yellow('Prueba de eliminación de usuario'), () => {
-    it('Debe eliminar el usuario correctamente', async () => {
-      await deleteUser(testUser); 
+    it('Debe agregar un nuevo usuario', async () => {
+        const nuevoUsuario = {
+            nombre: 'Juan',
+            apellido: 'Pérez',
+            email: 'juan.perez@example.com',
+            dni: '12345678A',
+            nick: 'juanperez',
+            password: 'password123',
+            rol: 'usuario'
+        };
 
-      // Intentamos obtener el usuario eliminado
-      const deletedUser = await login(testUser.email, testUser.password);  // El usuario no debe poder loguearse
-      expect(deletedUser).to.be.null;
-      console.log(chalk.green('Usuario eliminado correctamente.'));
+        await addUser(nuevoUsuario);
+        const usuarios = await listUsers();
+        expect(usuarios).to.have.lengthOf(1);
+        expect(usuarios[0].email).to.equal('juan.perez@example.com');
     });
-  });
 
-  after(async () => {
-    // Limpiar los datos de prueba si es necesario
-    console.log(chalk.blue('Datos de prueba limpiados.'));
-  });
+    it('No debe agregar un usuario con email duplicado', async () => {
+        const usuarioDuplicado = {
+            nombre: 'Maria',
+            apellido: 'Lopez',
+            email: 'juan.perez@example.com',
+            dni: '87654321B',
+            nick: 'marialopez',
+            password: 'password456',
+            rol: 'usuario'
+        };
+
+        await addUser(usuarioDuplicado);
+        expect(logStub.calledWithMatch('LOG_Error: Ya existe un usuario registrado')).to.be.true;
+    });
+
+    it('Debe iniciar sesión con credenciales válidas', async () => {
+        const usuario = await login('juan.perez@example.com', 'password123');
+        expect(usuario).to.not.be.null;
+        expect(usuario.email).to.equal('juan.perez@example.com');
+    });
+
+    it('No debe iniciar sesión con contraseña incorrecta', async () => {
+        const usuario = await login('juan.perez@example.com', 'wrongpassword');
+        expect(usuario).to.be.null;
+    });
+
+    it('Debe listar todos los usuarios', async () => {
+        const usuarios = await listUsers();
+        expect(usuarios).to.have.lengthOf(1);
+    });
+
+    it('Debe actualizar un usuario existente', async () => {
+        const usuarios = await listUsers();
+        const usuario = usuarios[0];
+        const nuevosDatos = {
+            nombre: 'Juanito',
+            apellido: 'Pérez García',
+            email: 'juanito.perez@example.com',
+            dni: '12345678A',
+            nick: 'juanito',
+            password: 'newpassword123',
+            rol: 'usuario'
+        };
+        await updateUser(usuario.id, nuevosDatos);
+        const usuariosActualizados = await listUsers();
+        expect(usuariosActualizados[0].nombre).to.equal('Juanito');
+        expect(usuariosActualizados[0].email).to.equal('juanito.perez@example.com');
+    });
+
+    it('Debe eliminar un usuario existente', async () => {
+        const usuarios = await listUsers();
+        const usuario = usuarios[0];
+
+        await deleteUser(usuario.id);
+        const usuariosRestantes = await listUsers();
+        expect(usuariosRestantes).to.have.lengthOf(0);
+    });
+
+    it('Debe obtener un usuario por ID', async () => {
+        const nuevoUsuario = {
+            nombre: 'Carlos',
+            apellido: 'Sánchez',
+            email: 'carlos.sanchez@example.com',
+            dni: '11223344C',
+            nick: 'carloss',
+            password: 'mypassword',
+            rol: 'usuario'
+        };
+
+        await addUser(nuevoUsuario);
+        const usuarios = await listUsers();
+        const usuario = await getUserId(usuarios[0].id);
+
+        expect(usuario).to.not.be.null;
+        expect(usuario.email).to.equal('carlos.sanchez@example.com');
+    });
+
+    it('No debe obtener un usuario con ID inválido', async () => {
+        const usuario = await getUserId(99999);
+        expect(usuario).to.be.null;
+    });
 });

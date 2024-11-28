@@ -8,5 +8,7 @@ export interface User {
     password: string;
     rol: 'admin' | 'propietario' | 'usuario';
     fecha_creacion: string;
+    activo: Boolean;
+    image: string;
   }
     

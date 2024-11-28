@@ -58,6 +58,8 @@ Este endpoint permite registrar un nuevo usuario en el sistema. Los parámetros 
 - **nick** : El nombre de usuario o apodo.
 - **password** : La contraseña del usuario, debe ser fuerte.
 - **rol** : El rol del usuario ("admin", "usuario", "propietario").
+- **activo** : Determina si el usuario está dado de alta o no (`true` o `false`).
+- **image** : La imagen del usuario.
 
 #### **Request Body:**
 
@@ -69,7 +71,9 @@ Este endpoint permite registrar un nuevo usuario en el sistema. Los parámetros 
   "dni": "12345678A",
   "nick": "Alex",
   "password": "password",
-  "rol": "usuario"
+  "rol": "usuario",
+  "activo": true,
+  "image": "image.png"
 }
 ```
 
@@ -121,6 +125,8 @@ Los siguientes parámetros se pueden actualizar:
 - **nick** : El nombre de usuario o apodo.
 - **password** : La contraseña del usuario, debe ser fuerte.
 - **rol** : El rol del usuario ("admin", "usuario", "propietario").
+- **activo** : Determina si el usuario está dado de alta o no (`true` o `false`).
+- **image** : La imagen del usuario.
 
 #### **Request Body:**
 
@@ -132,7 +138,9 @@ Los siguientes parámetros se pueden actualizar:
   "dni": "12345678A",
   "nick": "Alex",
   "password": "password",
-  "rol": "usuario"
+  "rol": "usuario",
+  "activo": true,
+  "image": "image.png"
 }
 ```
 

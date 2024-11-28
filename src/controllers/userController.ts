@@ -11,11 +11,11 @@ var CONSULTAS = {
     DELETE : `DELETE FROM users WHERE id = ?`
 }
 
-/**
- * Crear un nuevo usuario en la base de datos de la aplicación.
- * @param user El usuario que deseas registrar.
- */
-export const createUser = async (user: User): Promise<void> => {
+/* ******************************************************* */
+/*               Método para Agregar usuarios              */
+/*         Crea un nuevo usuario en la base de datos       */
+/* ******************************************************* */
+export const addUser = async (user: Omit<User, 'id'>): Promise<void> => {
     const db = await connectDB();
     
     const hashedPassword = await bcrypt.hash(user.password, 10);
@@ -40,23 +40,19 @@ export const createUser = async (user: User): Promise<void> => {
     }
 
     // Roles disponibles ['admin', 'propietario', 'usuario'];
-    await db.run(CONSULTAS.INSERT, [user.nombre, user.apellido, user.email, user.dni, user.nick, hashedPassword, user.rol, fecha]);
+    await db.run(CONSULTAS.INSERT, [user.nombre, user.apellido, user.email, user.dni, user.nick, hashedPassword, user.rol, fecha, user.activo, user.image]);
 };
 
 
-/**
- * Loguearse en la aplicación.
- * @param email El email del usuario para autenticar la solicitud.
- * @param passsword La contraseña del usuario para autenticar la solicitud.
- * @returns Devuelve al usuario User si es correcto; de lo contrario, null.
- */
+/* ******************************************************* */
+/*             Método para Loguearse en la APP             */
+/*  Inicia sesión en la aplicación con email y password    */
+/* ******************************************************* */
 export const login = async (email: string, password: string): Promise<User | null> => {
     const db = await connectDB();
     const user = await db.get<User>(CONSULTAS.SELECT_BY_EMAIL, [email]);
 
-    if (!user) {
-        return null; // Usuario no encontrado
-    } 
+    if (!user)  return null; // Usuario no encontrado
     
     // Comparar la contraseña ingresada con la almacenada
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -67,101 +63,87 @@ export const login = async (email: string, password: string): Promise<User | nul
     return user; // Devuelve ños datos del usuario
 };
 
-/**
- * Obtiene todos los usuarios.
- * @returns Un arreglo de usuarios; de lo contrario, Error.
- */
+/* ******************************************************* */
+/*               Método para Listar Usuarios               */
+/* Utiliza listUsers para listar a los Usuarios de la APP  */
+/* ******************************************************* */
 export const listUsers = async (): Promise<User[] | void> => {
     const db = await connectDB();
     return await db.all<User[]>(CONSULTAS.SELECT_ALL);
 };
 
 
-/**
- * Actualiza los datos del usuario actual.
- * @param User El usuario atenticado en la aplicación y el cual quiere actualizar sus datos.
- * @param newUser El nuevo usuario que dispone de los datos de usuario que desean ser actualizados.
- */
-export const updateUser = async (user: User, newUser: Partial<User>): Promise<void> => {
+/* ******************************************************* */
+/*           Método Actualizar datos de Usuario            */
+/*        Actualiza los datos de un usuario por ID         */
+/* ******************************************************* */
+export const updateUser = async (id: number, val: Omit<User, 'id'>): Promise<void> => {
     const db = await connectDB();
   
     try {
       // Verificar si alguno de los datos únicos ya existe en la base de datos (email, dni, nick)
-      if (newUser.email || newUser.dni || newUser.nick) {
-        const existingUser = await db.get(
-          `SELECT * FROM users WHERE (email = ? OR dni = ? OR nick = ?) AND id != ?`,
-          [newUser.email, newUser.dni, newUser.nick, user.id]
+      if (val.email || val.dni || val.nick) {
+        const existingUser = await db.get(`SELECT * FROM users WHERE (email = ? OR dni = ? OR nick = ?) AND id != ?`,
+          [val.email, val.dni, val.nick, id]
         );
   
         if (existingUser) {
           throw new Error('Email, DNI o Nick ya están en uso por otro usuario.');
+        }else{
+          const usuario = await getUserId(id);
+          // Si se proporciona una contraseña nueva, generar un hash
+          let hashedPassword = usuario?.password; // Usar la contraseña actual si no se actualiza
+          if (val.password) {
+            hashedPassword = await bcrypt.hash(val.password, 10);
+          }
+      
+          // Construir la consulta dinámicamente solo con los campos proporcionados
+          const updates = [];
+          const values = [];
+      
+          for (const [key, value] of Object.entries(val)) {
+            if (value !== undefined) {
+              updates.push(`${key} = ?`);
+              values.push(value);
+            }
+          }
+      
+          if (updates.length === 0) {
+            throw new Error('No se proporcionaron datos para actualizar.');
+          }
+      
+          // Asegurar que la contraseña siempre se incluya en la actualización
+          updates.push(`password = ?`);
+          values.push(hashedPassword);
+      
+          // Agregar el ID del usuario al final de los valores
+          values.push(id);
+      
+          // Ejecutar la actualización
+          const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+          await db.run(query, values);
         }
-      }
-  
-      // Si se proporciona una contraseña nueva, generar un hash
-      let hashedPassword = user.password; // Usar la contraseña actual si no se actualiza
-      if (newUser.password) {
-        hashedPassword = await bcrypt.hash(newUser.password, 10);
-      }
-  
-      // Construir la consulta dinámicamente solo con los campos proporcionados
-      const updates = [];
-      const values = [];
-  
-      for (const [key, value] of Object.entries(newUser)) {
-        if (value !== undefined) {
-          updates.push(`${key} = ?`);
-          values.push(value);
-        }
-      }
-  
-      if (updates.length === 0) {
-        throw new Error('No se proporcionaron datos para actualizar.');
-      }
-  
-      // Asegurar que la contraseña siempre se incluya en la actualización
-      updates.push(`password = ?`);
-      values.push(hashedPassword);
-  
-      // Agregar el ID del usuario al final de los valores
-      values.push(user.id);
-  
-      // Ejecutar la actualización
-      const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
-      await db.run(query, values);
+      }  
     } catch (error) {
       console.error('Error al actualizar el usuario:', error);
       throw error;
     } finally {
       await db.close();
     }
-  };
-  
-
-/*export const updateUser = async (user: User, newUser: Partial<User>): Promise<void> => {
-    const db = await connectDB();
-
-    // Revisar si los datos del nuevo usuario existen ya en la base de datos...
-    // Solo actualizar los datos que nos pasan por newUser...
-
-    if(newUser.password){
-        const hashedPassword = await bcrypt.hash(newUser.password, 10);
-        await db.run(CONSULTAS.UPDATE,[newUser.nombre, newUser.apellido, newUser.email, newUser.dni, 
-            newUser.nick, hashedPassword, newUser.rol, newUser.fecha_creacion, user.id]);
-    }else await db.run(CONSULTAS.UPDATE,[newUser.nombre, newUser.apellido, newUser.email, newUser.dni, 
-        newUser.nick, newUser.password, newUser.rol, newUser.fecha_creacion, user.id]);
-};*/
-
-/**
- * Elimina al usuario actual de la base de datos y de la aplicación.
- * @param User El usuario atenticado en la aplicación y el cual quiere eliminar sus datos.
- */
-export const deleteUser = async (user: User): Promise<void> => {
-    const db = await connectDB();
-    await db.run(CONSULTAS.DELETE, [user.id]);
 };
 
-// Función para obtener una reserva por su ID
+/* ******************************************************* */
+/*              Método para Eliminar Usuarios              */
+/*   Elimina a algún usuario de la base de datos por ID    */
+/* ******************************************************* */
+export const deleteUser = async (id: number): Promise<void> => {
+    const db = await connectDB();
+    await db.run(CONSULTAS.DELETE, [id]);
+};
+
+//* ******************************************************* */
+/*           Método para Obtener usuarios por ID            */
+/* ******************************************************* */
 export const getUserId = async (id: number): Promise<User | null> => {
     const db = await connectDB();
 
@@ -187,5 +169,8 @@ export const getUserId = async (id: number): Promise<User | null> => {
         return null;
     }
 };
+
+
+
 
 
